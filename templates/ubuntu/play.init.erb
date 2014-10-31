@@ -1,0 +1,87 @@
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides:          <%= @service_name %>
+# Required-Start:    $remote_fs $syslog
+# Required-Stop:     $remote_fs $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Start daemon at boot time
+# Description:       Enable service provided by daemon.
+### END INIT INFO
+
+# Path to play install directory
+PLAY_DIST_HOME="<%= @source %>"
+PLAY="${PLAY_DIST_HOME}/bin/<%= @executable %>"
+
+# User running the Play process
+USER="<%= @user %>"
+
+PID_PATH="<%= @pid_path %>"
+PID_FILE="${PID_PATH}/<%= @service_name %>.pid"
+
+if [[ ! -e ${PID_PATH} ]]; then
+  mkdir -p ${PID_PATH}
+  chown ${USER}:${USER} ${PID_PATH}
+fi
+
+CONFIG_FILE="<%= @config_file %>"
+APP_ARGS="<%= @app_args %>"
+
+# source function library
+. /lib/lsb/init-functions
+RETVAL=0
+
+start() {
+  echo -n "Starting <%= @service_name %> service: "
+  su -s /bin/sh ${USER} -c "( ${PLAY} -Dpidfile.path=${PID_FILE} -Dconfig.file=${CONFIG_FILE} ${APP_ARGS} & )"
+  RETVAL=$?
+
+  if [ ${RETVAL} -eq 0 ]; then
+    log_end_msg 0
+  else
+    log_end_msg 1
+  fi
+  echo
+}
+stop() {
+  echo -n "Shutting down Play service: "
+  kill $(cat ${PID_FILE})
+  RETVAL=$?
+
+  if [ ${RETVAL} -eq 0 ]; then
+    log_end_msg 0
+  else
+    log_end_msg 1
+  fi
+  echo
+}
+status() {
+  ps $(cat ${PID_FILE})
+  RETVAL=$?
+}
+clean() {
+  rm -fr ${PID_FILE}
+}
+case "$1" in
+  start)
+    clean
+    start
+    ;;
+  stop)
+    stop
+    ;;
+  restart|reload)
+    stop
+    sleep 10
+    start
+    ;;
+  status)
+    status
+    ;;
+  clean)
+    clean
+    ;;
+  *)
+    echo "Usage: $0 {start|stop|restart|status}"
+esac
+exit 0

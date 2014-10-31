@@ -1,0 +1,95 @@
+#!/bin/bash
+# chkconfig: 345 20 80
+# description: Play start/shutdown script
+# processname: <%= @service_name %>
+#
+# Installation:
+# copy file to /etc/init.d/<%= @service_name %>
+# chmod +x /etc/init.d/<%= @service_name %>
+# chkconfig --add /etc/init.d/<%= @service_name %>
+# chkconfig <%= @service_name %> on
+#
+# Usage: (as root)
+# service <%= @service_name %> start
+# service <%= @service_name %> stop
+# service <%= @service_name %> status
+#
+# Remember, you need python 2.6 to run the play command, it doesn't come standard with RedHat/Centos 5.5
+# Also, you may want to temporarily remove the >/dev/null for debugging purposes
+
+# Path to play install directory
+PLAY_DIST_HOME="<%= @source %>"
+PLAY="${PLAY_DIST_HOME}/bin/<%= @executable %>"
+
+# User running the Play process
+USER="<%= @user %>"
+
+PID_PATH="<%= @pid_path %>"
+PID_FILE="${PID_PATH}/<%= @service_name %>.pid"
+
+if [[ ! -e ${PID_PATH} ]]; then
+  mkdir -p ${PID_PATH}
+  chown ${USER}:${USER} ${PID_PATH}
+fi
+
+CONFIG_FILE="<%= @config_file %>"
+APP_ARGS="<%= @app_args %>"
+
+# source function library
+. /etc/init.d/functions
+RETVAL=0
+
+start() {
+  echo -n "Starting <%= @service_name %> service: "
+  su -s /bin/sh ${USER} -c "( ${PLAY} -Dpidfile.path=${PID_FILE} -Dconfig.file=${CONFIG_FILE} ${APP_ARGS} & )"
+  RETVAL=$?
+
+  if [ ${RETVAL} -eq 0 ]; then
+    echo_success
+  else
+    echo_failure
+  fi
+  echo
+}
+stop() {
+  echo -n "Shutting down Play service: "
+  kill $(cat ${PID_FILE})
+  RETVAL=$?
+
+  if [ ${RETVAL} -eq 0 ]; then
+    echo_success
+  else
+    echo_failure
+  fi
+  echo
+}
+status() {
+  ps $(cat ${PID_FILE})
+  RETVAL=$?
+}
+clean() {
+  rm -fr ${PID_FILE}
+}
+case "$1" in
+  start)
+    clean
+    start
+    ;;
+  stop)
+    stop
+    ;;
+  restart|reload)
+    stop
+    sleep 10
+    start
+    ;;
+  status)
+    status
+    ;;
+  clean)
+    clean
+    ;;
+  *)
+    echo "Usage: $0 {start|stop|restart|status}"
+esac
+exit 0

@@ -1,0 +1,14 @@
+#AlignParameters:
+#  Enabled: false
+#
+#Encoding:
+#  Enabled: false
+#
+LineLength:
+  Max: 120
+
+MethodLength:
+  Max: 45
+
+Metrics/AbcSize:
+   Max: 60
